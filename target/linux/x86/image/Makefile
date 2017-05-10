@@ -104,6 +104,15 @@ ifneq ($(CONFIG_GRUB_IMAGES)$(CONFIG_EFI_IMAGES),)
 	echo "search --file /boot/grub/$(SIGNATURE).cfg --set=root" > $(KDIR)/grub2.efi/efi/boot/grub.cfg
 	echo "configfile /boot/grub/grub.cfg" >> $(KDIR)/grub2.efi/efi/boot/grub.cfg
 
+	# Create startup.nsh to always boot from usb drives first
+	echo 'for %d in 9 8 7 6 5 4 3 2 1 0'                 > $(KDIR)/grub2.efi/startup.nsh
+	echo '   set bootapp "fs%d:\efi\boot\bootx64.efi"'  >> $(KDIR)/grub2.efi/startup.nsh
+	echo '   if exist %bootapp% then'                   >> $(KDIR)/grub2.efi/startup.nsh
+	echo '      %bootapp%'                              >> $(KDIR)/grub2.efi/startup.nsh
+	echo '   endif'                                     >> $(KDIR)/grub2.efi/startup.nsh
+	echo 'endfor'                                       >> $(KDIR)/grub2.efi/startup.nsh
+	echo 'exit'                                         >> $(KDIR)/grub2.efi/startup.nsh
+
 	# Create the EFI grub binary
 	grub-mkimage-efi \
 		-d $(STAGING_DIR_HOST)/lib/grub/x86_64-efi \
