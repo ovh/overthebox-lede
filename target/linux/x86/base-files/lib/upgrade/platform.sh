@@ -38,7 +38,7 @@ platform_copy_config() {
 	local partdev
 
 	if export_partdevice partdev 1; then
-		mount -t ext4 -o rw,noatime "/dev/$partdev" /mnt
+		mount -t vfat -o rw,noatime "/dev/$partdev" /mnt
 		cp -af "$CONF_TAR" /mnt/
 		umount /mnt
 	fi

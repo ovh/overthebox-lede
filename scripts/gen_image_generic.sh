@@ -15,21 +15,18 @@ ALIGN="$6"
 
 rm -f "$OUTPUT"
 
-head=16
-sect=63
-cyl=$(( ($KERNELSIZE + $ROOTFSSIZE) * 1024 * 1024 / ($head * $sect * 512)))
-
-# create partition table
-set `ptgen -o "$OUTPUT" -h $head -s $sect -p ${KERNELSIZE}m -p ${ROOTFSSIZE}m ${ALIGN:+-l $ALIGN} ${SIGNATURE:+-S 0x$SIGNATURE}`
+# shellcheck disable=2046
+set $(ptgen -o "$OUTPUT" -h 16 -s 63 -t 0xef -p "${KERNELSIZE}m" -t 0x83 -p "${ROOTFSSIZE}m" ${ALIGN:+-l "$ALIGN"} ${SIGNATURE:+-S "0x$SIGNATURE"})
 
 KERNELOFFSET="$(($1 / 512))"
-KERNELSIZE="$2"
+KERNELCOUNT="$(($2 / 1024))" # mkfs.fat BLOCK_SIZE=1024
 ROOTFSOFFSET="$(($3 / 512))"
-ROOTFSSIZE="$(($4 / 512))"
+ROOTFSCOUNT="$(($4 / 512))"
 
-[ -n "$PADDING" ] && dd if=/dev/zero of="$OUTPUT" bs=512 seek="$ROOTFSOFFSET" conv=notrunc count="$ROOTFSSIZE"
+[ -n "$PADDING" ] && dd if=/dev/zero of="$OUTPUT" bs=512 seek="$ROOTFSOFFSET" conv=notrunc count="$ROOTFSCOUNT"
 dd if="$ROOTFSIMAGE" of="$OUTPUT" bs=512 seek="$ROOTFSOFFSET" conv=notrunc
 
-make_ext4fs -J -l "$KERNELSIZE" "$OUTPUT.kernel" "$KERNELDIR"
+mkfs.fat -C -n BOOT "$OUTPUT.kernel" "$KERNELCOUNT"
+mcopy -s -i "$OUTPUT.kernel" "$KERNELDIR"/* ::/
 dd if="$OUTPUT.kernel" of="$OUTPUT" bs=512 seek="$KERNELOFFSET" conv=notrunc
 rm -f "$OUTPUT.kernel"
