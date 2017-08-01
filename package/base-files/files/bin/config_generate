@@ -67,10 +67,25 @@ generate_network() {
 
 	[ -n "$ifname" ] || return
 
-	# force bridge for multi-interface devices (and lan)
-	case "$1:$ifname" in
-		*\ * | lan:*) type="bridge" ;;
+	case "$1" in
+		# hack (see /etc/board.d/02_network)
+		none) return ;;
+		lan*) proto=${proto:-static} ;;
+		wan*) proto=${proto:-dhcp} ;;
 	esac
+
+	if [ -n "$macaddr" ]; then
+		type=macvlan # useless, only for legacy
+		uci -q batch <<-EOF
+			delete network.${1}_dev
+			set network.${1}_dev='device'
+			set network.${1}_dev.name='$1'
+			set network.${1}_dev.type='$type'
+			set network.${1}_dev.ifname='$ifname'
+			set network.${1}_dev.macaddr='$macaddr'
+		EOF
+		ifname=$1
+	fi
 
 	uci -q batch <<-EOF
 		delete network.$1
@@ -80,18 +95,11 @@ generate_network() {
 		set network.$1.proto='none'
 	EOF
 
-	[ -n "$macaddr" ] && uci -q batch <<-EOF
-		delete network.$1_dev
-		set network.$1_dev='device'
-		set network.$1_dev.name='$ifname'
-		set network.$1_dev.macaddr='$macaddr'
-	EOF
-
 	case "$protocol" in
 		static)
 			local ipad
 			case "$1" in
-				lan) ipad=${ipaddr:-"192.168.1.1"} ;;
+				lan) ipad=${ipaddr:-"192.168.100.1"} ;;
 				*) ipad=${ipaddr:-"192.168.$((addr_offset++)).1"} ;;
 			esac
 
@@ -111,10 +119,6 @@ generate_network() {
 
 			uci -q batch <<-EOF
 				set network.$1.proto='dhcp'
-				delete network.${1}6
-				set network.${1}6='interface'
-				set network.${1}6.ifname='$ifname'
-				set network.${1}6.proto='dhcpv6'
 			EOF
 		;;
 
@@ -223,7 +227,7 @@ generate_static_system() {
 	uci -q batch <<-EOF
 		delete system.@system[0]
 		add system system
-		set system.@system[-1].hostname='LEDE'
+		set system.@system[-1].hostname='OverTheBox'
 		set system.@system[-1].timezone='UTC'
 		set system.@system[-1].ttylogin='0'
 		set system.@system[-1].log_size='64'
