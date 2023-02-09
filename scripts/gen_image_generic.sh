@@ -20,7 +20,7 @@ sect=63
 cyl=$(( ($KERNELSIZE + $ROOTFSSIZE) * 1024 * 1024 / ($head * $sect * 512)))
 
 # create partition table
-set `ptgen -o "$OUTPUT" -h $head -s $sect -p ${KERNELSIZE}m -p ${ROOTFSSIZE}m ${ALIGN:+-l $ALIGN} ${SIGNATURE:+-S 0x$SIGNATURE}`
+set $(ptgen -o "$OUTPUT" -h $head -s $sect -t 0xef -p "${KERNELSIZE}m" -t 0x83 -p "${ROOTFSSIZE}m" -t 0x83 -p "${ROOTFSSIZE}m" ${SIGNATURE:+-S "0x$SIGNATURE"} ${ALIGN:+-l "$ALIGN"})
 
 KERNELOFFSET="$(($1 / 512))"
 KERNELSIZE="$2"
@@ -30,6 +30,7 @@ ROOTFSSIZE="$(($4 / 512))"
 [ -n "$PADDING" ] && dd if=/dev/zero of="$OUTPUT" bs=512 seek="$ROOTFSOFFSET" conv=notrunc count="$ROOTFSSIZE"
 dd if="$ROOTFSIMAGE" of="$OUTPUT" bs=512 seek="$ROOTFSOFFSET" conv=notrunc
 
-make_ext4fs -J -l "$KERNELSIZE" "$OUTPUT.kernel" "$KERNELDIR"
+mkfs.fat -C -n BOOT "$OUTPUT.kernel" "$((KERNELSIZE/1024))"
+mcopy -s -i "$OUTPUT.kernel" "$KERNELDIR"/* ::/
 dd if="$OUTPUT.kernel" of="$OUTPUT" bs=512 seek="$KERNELOFFSET" conv=notrunc
 rm -f "$OUTPUT.kernel"
