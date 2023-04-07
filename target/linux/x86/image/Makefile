@@ -39,6 +39,7 @@ GRUB_TITLE:=$(call qstrip,$(CONFIG_GRUB_TITLE))
 BOOTOPTS:=$(call qstrip,$(CONFIG_GRUB_BOOTOPTS))
 
 define Build/combined
+	$(CP) ./startup.nsh $@.boot/
 	$(CP) $(KDIR)/$(KERNEL_NAME) $@.boot/boot/vmlinuz
 	-$(CP) $(STAGING_DIR_ROOT)/boot/. $@.boot/boot/
 	$(CP) $(STAGING_DIR_IMAGE)/grub2/boot.img $@.boot/boot/grub/
