@@ -47,6 +47,8 @@ define Build/combined
 	$(if $(filter $(1),efi),
 		$(INSTALL_DIR) $@.boot/efi/boot
 		$(CP) $(STAGING_DIR_IMAGE)/grub2/boot$(if $(CONFIG_x86_64),x64,ia32).efi $@.boot/efi/boot/
+		$(CP) ./startup.nsh $@.boot/
+
 	)
 	PADDING="1" SIGNATURE="$(IMG_PART_SIGNATURE)" \
 		$(if $(filter $(1),efi),GUID="$(IMG_PART_DISKGUID)") $(SCRIPT_DIR)/gen_image_generic.sh \
